@@ -299,7 +299,7 @@ void init_conf(const RunProgramConfig &config) {
 	}
 	statable_file_name_set.insert(config.work_path + "/");
 
-	if (config.type != "java7u76" && config.type != "java8u152") {
+	if (config.type != "java8u282") {
 		add_file_permission(config.program_name, 'r');
 	} else {
 		int p = config.program_name.find('.');
@@ -346,7 +346,7 @@ void init_conf(const RunProgramConfig &config) {
 
 		statable_file_name_set.insert("/usr");
 		statable_file_name_set.insert("/usr/bin");
-	} else if (config.type == "python3.4") {
+	} else if (config.type == "python3.8") {
 		syscall_max_cnt[__NR_set_tid_address] = 1;
 		syscall_max_cnt[__NR_set_robust_list] = 1;
 		syscall_max_cnt[__NR_futex          ] = -1;
@@ -354,11 +354,11 @@ void init_conf(const RunProgramConfig &config) {
 		syscall_max_cnt[__NR_getdents       ] = -1;
 		syscall_max_cnt[__NR_getdents64     ] = -1;
 
-		readable_file_name_set.insert("/usr/bin/python3.4");
-		readable_file_name_set.insert("/usr/lib/python3.4/");
+		readable_file_name_set.insert("/usr/bin/python3.8");
+		readable_file_name_set.insert("/usr/lib/python3.8/");
 		readable_file_name_set.insert("/usr/lib/python3/");
-		readable_file_name_set.insert("/usr/bin/lib/python3.4/");
-		readable_file_name_set.insert("/usr/local/lib/python3.4/");
+		readable_file_name_set.insert("/usr/bin/lib/python3.8/");
+		readable_file_name_set.insert("/usr/local/lib/python3.8/");
 		readable_file_name_set.insert("/usr/bin/pyvenv.cfg");
 		readable_file_name_set.insert("/usr/pyvenv.cfg");
 		readable_file_name_set.insert("/usr/bin/Modules/");
@@ -368,39 +368,7 @@ void init_conf(const RunProgramConfig &config) {
 		statable_file_name_set.insert("/usr");
 		statable_file_name_set.insert("/usr/bin");
 		statable_file_name_set.insert("/usr/lib/");
-	} else if (config.type == "java7u76") {
-		syscall_max_cnt[__NR_gettid         ] = -1;
-		syscall_max_cnt[__NR_set_tid_address] = 1;
-		syscall_max_cnt[__NR_set_robust_list] = 14;
-		syscall_max_cnt[__NR_futex          ] = -1;
-
-		syscall_max_cnt[__NR_uname          ] = 1;
-
-		syscall_max_cnt[__NR_clone          ] = 13;
-
-		syscall_max_cnt[__NR_getdents       ] = 4;
-
-		syscall_max_cnt[__NR_clock_getres   ] = 2;
-
-		syscall_max_cnt[__NR_setrlimit      ] = 1;
-
-		syscall_max_cnt[__NR_sched_getaffinity] = -1;
-		syscall_max_cnt[__NR_sched_yield    ] = -1;
-
-		syscall_should_soft_ban[__NR_socket   ] = true;
-		syscall_should_soft_ban[__NR_connect  ] = true;
-		syscall_should_soft_ban[__NR_geteuid  ] = true;
-		syscall_should_soft_ban[__NR_getuid   ] = true;
-
-		soft_ban_file_name_set.insert("/etc/nsswitch.conf");
-		soft_ban_file_name_set.insert("/etc/passwd");
-
-		add_file_permission(abspath(0, string(self_path) + "/../runtime/jdk1.7.0_76") + "/", 'r');
-		readable_file_name_set.insert("/sys/devices/system/cpu/");
-		readable_file_name_set.insert("/proc/");
-		statable_file_name_set.insert("/usr/java/");
-		statable_file_name_set.insert("/tmp/");
-	} else if (config.type == "java8u152") {
+	} else if (config.type == "java8u282") {
 		syscall_max_cnt[__NR_gettid         ] = -1;
 		syscall_max_cnt[__NR_set_tid_address] = 1;
 		syscall_max_cnt[__NR_set_robust_list] = 15;
@@ -427,12 +395,12 @@ void init_conf(const RunProgramConfig &config) {
 
 		soft_ban_file_name_set.insert("/etc/nsswitch.conf");
 		soft_ban_file_name_set.insert("/etc/passwd");
-
-		add_file_permission(abspath(0, string(self_path) + "/../runtime/jdk1.8.0_152") + "/", 'r');
+		readable_file_name_set.insert("/usr/lib/jvm", "r");
+		readable_file_name_set.insert("/usr/bin/javac", 'r');
 		add_file_permission(abspath(0, string(self_path) + "/../../work/?") + "/", 'w');
 		readable_file_name_set.insert("/sys/devices/system/cpu/");
 		readable_file_name_set.insert("/proc/");
-		statable_file_name_set.insert("/usr/java/");
+		// statable_file_name_set.insert("/usr/java/");
 		statable_file_name_set.insert("/tmp/");
 		statable_file_name_set.insert("/etc/oracle/java/usagetracker.properties");
 	} else if (config.type == "compiler") {
@@ -500,7 +468,7 @@ void init_conf(const RunProgramConfig &config) {
 		soft_ban_file_name_set.insert("/etc/passwd"); // for javac = =
 
 		readable_file_name_set.insert("/etc/timezone");
-		readable_file_name_set.insert("/etc/fpc-2.6.2.cfg.d/");
+		readable_file_name_set.insert("/etc/fpc-3.0.4.cfg");
 		readable_file_name_set.insert("/etc/fpc.cfg");
 
 		statable_file_name_set.insert("/");

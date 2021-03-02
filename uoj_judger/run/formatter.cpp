@@ -7,7 +7,6 @@ using namespace std;
 typedef long long LL;
 int main()
 {
-    //freopen("1.in","r",stdin);
     char c,last;
     int nSpace=0,nR=0,first;
     while(1)

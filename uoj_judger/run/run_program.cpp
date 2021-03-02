@@ -221,7 +221,7 @@ void parse_args(int argc, char **argv) {
 		}
 	}
 
-	if (run_program_config.type == "java7u76" || run_program_config.type == "java8u152") {
+	if (run_program_config.type == "java8u282") {
 		run_program_config.program_name = run_program_config.argv[0];
 	} else {
 		run_program_config.program_name = realpath(run_program_config.argv[0]);
@@ -239,14 +239,11 @@ void parse_args(int argc, char **argv) {
 	if (run_program_config.type == "python2.7") {
 		string pre[4] = {"/usr/bin/python2.7", "-E", "-s", "-B"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 4);
-	} else if (run_program_config.type == "python3.4") {
-		string pre[3] = {"/usr/bin/python3.4", "-I", "-B"};
+	} else if (run_program_config.type == "python3.8") {
+		string pre[3] = {"/usr/bin/python3.8", "-I", "-B"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
-	} else if (run_program_config.type == "java7u76") {
-		string pre[3] = {abspath(0, string(self_path) + "/../runtime/jdk1.7.0_76/bin/java"), "-Xmx1024m", "-Xss1024m"};
-		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
-	} else if (run_program_config.type == "java8u152") {
-		string pre[3] = {abspath(0, string(self_path) + "/../runtime/jdk1.8.0_152/bin/java"), "-Xmx1024m", "-Xss1024m"};
+	} else if (run_program_config.type == "java8u282") {
+		string pre[3] = {abspath(0, string(self_path) + "/usr/bin/java"), "-Xmx1024m", "-Xss1024m"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
 	}
 }
