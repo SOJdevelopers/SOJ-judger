@@ -91,7 +91,7 @@ argp_option run_program_argp_options[] =
 	{"err"                , 'e', "ERR"         , 0, "Set error file name"                                   ,  8},
 	{"work-path"          , 'w', "WORK_PATH"   , 0, "Set the work path of the program"                      ,  9},
 	{"type"               , 't', "TYPE"        , 0, "Set the program type (for some program such as python)", 10},
-	{"res"                , 'r', "RESULT_FILE ", 0, "Set the file name for outputing the result"            , 10},
+	{"res"                , 'r', "RESULT_FILE" , 0, "Set the file name for outputing the result"            , 10},
 	{"add-readable"       , 500, "FILE"        , 0, "Add a readable file"                                   , 11},
 	{"add-writable"       , 505, "FILE"        , 0, "Add a writable file"                                   , 11},
 	{"unsafe"             , 501, 0             , 0, "Don't check dangerous syscalls"                        , 12},
@@ -221,7 +221,7 @@ void parse_args(int argc, char **argv) {
 		}
 	}
 
-	if (run_program_config.type == "java7u76" || run_program_config.type == "java8u152") {
+	if (run_program_config.type == "java8" || run_program_config.type == "java11") {
 		run_program_config.program_name = run_program_config.argv[0];
 	} else {
 		run_program_config.program_name = realpath(run_program_config.argv[0]);
@@ -236,17 +236,17 @@ void parse_args(int argc, char **argv) {
 		}
 	}
 
-	if (run_program_config.type == "python2.7") {
-		string pre[4] = {"/usr/bin/python2.7", "-E", "-s", "-B"};
+	if (run_program_config.type == "python2") {
+		string pre[4] = {"/usr/bin/python2", "-E", "-s", "-B"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 4);
-	} else if (run_program_config.type == "python3.4") {
-		string pre[3] = {"/usr/bin/python3.4", "-I", "-B"};
+	} else if (run_program_config.type == "python3") {
+		string pre[3] = {"/usr/bin/python3", "-I", "-B"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
-	} else if (run_program_config.type == "java7u76") {
-		string pre[3] = {abspath(0, string(self_path) + "/../runtime/jdk1.7.0_76/bin/java"), "-Xmx1024m", "-Xss1024m"};
+	} else if (run_program_config.type == "java8") {
+		string pre[3] = {"/usr/lib/jvm/java-8-openjdk-amd64/bin/java", "-Xmx1024m", "-Xss1024m"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
-	} else if (run_program_config.type == "java8u152") {
-		string pre[3] = {abspath(0, string(self_path) + "/../runtime/jdk1.8.0_152/bin/java"), "-Xmx1024m", "-Xss1024m"};
+	} else if (run_program_config.type == "java11") {
+		string pre[3] = {"/usr/lib/jvm/java-11-openjdk-amd64/bin/java", "-Xmx1024m", "-Xss1024m"};
 		run_program_config.argv.insert(run_program_config.argv.begin(), pre, pre + 3);
 	}
 }

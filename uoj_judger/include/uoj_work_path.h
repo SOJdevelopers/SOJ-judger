@@ -1,1 +1,4 @@
-#define UOJ_WORK_PATH "/root/judge_client/uoj_judger"
+#define UOJ_WORK_PATH "/root/judger/uoj_judger"
+#define UOJ_JUDGER_BASESYSTEM_UBUNTU1804
+#define UOJ_JUDGER_PYTHON3_VERSION "3.8"
+#define UOJ_JUDGER_FPC_VERSION "3.0.4"

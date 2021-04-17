@@ -235,7 +235,7 @@ struct RunCheckerResult {
 		res.ust = NAN;
 		res.usm = -1;
 		res.scr = 0;
-		res.info = "Checker Judgment Failed";
+		res.info = "Checker Judgement Failed";
 		return res;
 	}
 };
@@ -252,7 +252,7 @@ struct RunValidatorResult {
 		res.ust = NAN;
 		res.usm = -1;
 		res.succeeded = 0;
-		res.info = "Validator Judgment Failed";
+		res.info = "Validator Judgement Failed";
 		return res;
 	}
 };
@@ -437,7 +437,7 @@ inline string info_str(int id)  {
 		case RS_OLE: return "Output Limit Exceeded";
 		case RS_RE : return "Runtime Error";
 		case RS_DGS: return "Dangerous Syscalls";
-		case RS_JGF: return "Judgment Failed";
+		case RS_JGF: return "Judgement Failed";
 		default    : return "Unknown Result";
 	}
 }
@@ -520,7 +520,7 @@ void end_judge_ok() {
 }
 void end_judge_judgement_failed(const string &info) {
 	FILE *fres = fopen((result_path + "/result.txt").c_str(), "w");
-	fprintf(fres, "error Judgment Failed\n");
+	fprintf(fres, "error Judgement Failed\n");
 	fprintf(fres, "details\n");
 	fprintf(fres, "<error>%s</error>\n", htmlspecialchars(info).c_str());
 	fclose(fres);
@@ -610,16 +610,16 @@ struct RunProgramConfig {
 		string lang = conf_str(string(name) + "_language");
 		type = "default";
 		string program_name = name;
-		if (lang == "Python2.7") {
-			type = "python2.7";
+		if (lang == "Python2") {
+			type = "python2";
 		} else if (lang == "Python3") {
-			type = "python3.4";
-		} else if (lang == "Java7") {
-			program_name += "." + conf_str(name + "_main_class");
-			type = "java7u76";
+			type = "python3";
 		} else if (lang == "Java8") {
 			program_name += "." + conf_str(name + "_main_class");
-			type = "java8u152";
+			type = "java8";
+		} else if (lang == "Java11") {
+			program_name += "." + conf_str(name + "_main_class");
+			type = "java11";
 		}
 
 		set_argv(program_name.c_str(), NULL);
@@ -918,7 +918,7 @@ RunSimpleInteractionResult run_simple_interaction(
 	}
 
 	if (ires.type == RS_JGF) {
-		ires.info = "Interactor Judgment Failed";
+		ires.info = "Interactor Judgement Failed";
 	}
 	if (ires.type == RS_TLE) {
 		ires.type = RS_AC;
@@ -969,37 +969,6 @@ bool is_illegal_keyword(const string &name) {
 	return false;
 }
 
-bool has_illegal_keywords_in_file(const string &name) {
-/*	FILE *f = fopen(name.c_str(), "r");
-
-	int c;
-	string key;
-	while ((c = fgetc(f)) != EOF)
-	{
-		if (('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_')
-		{
-			if (key.size() < 20)
-				key += c;
-			else
-			{
-				if (is_illegal_keyword(key))
-					return true;
-				key.erase(key.begin());
-				key += c;
-			}
-		}
-		else
-		{
-			if (is_illegal_keyword(key))
-				return true;
-			key.clear();
-		}
-	}
-	if (is_illegal_keyword(key))
-		return true;
-	fclose(f);*/
-	return false;
-}
 
 RunCompilerResult prepare_java_source(const string &name, const string &path = work_path) {
 	FILE *f = fopen((path + "/" + name + ".code").c_str(), "r");
@@ -1158,43 +1127,27 @@ RunCompilerResult prepare_java_source(const string &name, const string &path = w
 	return res;
 }
 
-RunCompilerResult compile_c(const string &name, const string &path = work_path) {
-	return run_compiler(path.c_str(), 
-			"/usr/bin/gcc-4.8", "-o", name.c_str(), "-x", "c", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", NULL);
-}
 RunCompilerResult compile_pas(const string &name, const string &path = work_path) {
 	return run_compiler(path.c_str(),
-			"/usr/bin/fpc-2.6.2", (name + ".code").c_str(), "-O2", NULL);
+			"/usr/bin/fpc", (name + ".code").c_str(), "-O2", NULL);
 }
-RunCompilerResult compile_cpp(const string &name, const string &path = work_path) {
-	return run_compiler(path.c_str(),
-			"/usr/bin/g++-4.8", "-o", name.c_str(), "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", NULL);
+RunCompilerResult compile_c(const string &name, const string &standard, const string &path = work_path) {
+	return run_compiler(path.c_str(), 
+			"/usr/bin/gcc", "-o", name.c_str(), "-x", "c", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", ("-std=c" + standard).c_str(), NULL);
 }
-RunCompilerResult compile_cpp11(const string &name, const string &path = work_path) {
+RunCompilerResult compile_cpp(const string &name, const string &standard, const string &path = work_path) {
 	return run_compiler(path.c_str(),
-			"/usr/bin/g++-4.8", "-o", name.c_str(), "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", "-std=c++11", NULL);
+			"/usr/bin/g++", "-o", name.c_str(), "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", 
+			("-std=c++" + standard).c_str(), NULL);
 }
-RunCompilerResult compile_python2_7(const string &name, const string &path = work_path) {
+RunCompilerResult compile_python2(const string &name, const string &path = work_path) {
 	return run_compiler(path.c_str(),
-			"/usr/bin/python2.7", "-E", "-s", "-B", "-O", "-c",
+			"/usr/bin/python2", "-E", "-s", "-B", "-O", "-c",
 			("import py_compile\nimport sys\ntry:\n    py_compile.compile('" + name + ".code'" + ", '" + name + "', doraise=True)\n    sys.exit(0)\nexcept Exception as e:\n    print e\n    sys.exit(1)").c_str(), NULL);
 }
 RunCompilerResult compile_python3(const string &name, const string &path = work_path) {
 	return run_compiler(path.c_str(),
-			"/usr/bin/python3.4", "-I", "-B", "-O", "-c", ("import py_compile\nimport sys\ntry:\n    py_compile.compile('" + name + ".code'" + ", '" + name + "', doraise=True)\n    sys.exit(0)\nexcept Exception as e:\n    print(e)\n    sys.exit(1)").c_str(), NULL);
-}
-RunCompilerResult compile_java7(const string &name, const string &path = work_path) {
-	RunCompilerResult ret = prepare_java_source(name, path);
-	if (!ret.succeeded)
-		return ret;
-
-	string main_class = conf_str(name + "_main_class");
-
-	executef("rm %s/%s -rf 2>/dev/null; mkdir %s/%s", path.c_str(), name.c_str(), path.c_str(), name.c_str());
-	executef("echo package %s\\; | cat - %s/%s.code >%s/%s/%s.java", name.c_str(), path.c_str(), name.c_str(), path.c_str(), name.c_str(), main_class.c_str());
-
-	return run_compiler((path + "/" + name).c_str(),
-			(main_path + "/run/runtime/jdk1.7.0_76/bin/javac").c_str(), (main_class + ".java").c_str(), NULL);
+			"/usr/bin/python3", "-I", "-B", "-O", "-c", ("import py_compile\nimport sys\ntry:\n    py_compile.compile('" + name + ".code'" + ", '" + name + "', doraise=True)\n    sys.exit(0)\nexcept Exception as e:\n    print(e)\n    sys.exit(1)").c_str(), NULL);
 }
 RunCompilerResult compile_java8(const string &name, const string &path = work_path) {
 	RunCompilerResult ret = prepare_java_source(name, path);
@@ -1207,43 +1160,55 @@ RunCompilerResult compile_java8(const string &name, const string &path = work_pa
 	executef("echo package %s\\; | cat - %s/%s.code >%s/%s/%s.java", name.c_str(), path.c_str(), name.c_str(), path.c_str(), name.c_str(), main_class.c_str());
 
 	return run_compiler((path + "/" + name).c_str(),
-			(main_path + "/run/runtime/jdk1.8.0_152/bin/javac").c_str(), (main_class + ".java").c_str(), NULL);
+			"/usr/lib/jvm/java-8-openjdk-amd64/bin/javac", (main_class + ".java").c_str(), NULL);
+}
+RunCompilerResult compile_java11(const string &name, const string &path = work_path) {
+	RunCompilerResult ret = prepare_java_source(name, path);
+	if (!ret.succeeded)
+		return ret;
+
+	string main_class = conf_str(name + "_main_class");
+
+	executef("rm %s/%s -rf 2>/dev/null; mkdir %s/%s", path.c_str(), name.c_str(), path.c_str(), name.c_str());
+	executef("echo package %s\\; | cat - %s/%s.code >%s/%s/%s.java", name.c_str(), path.c_str(), name.c_str(), path.c_str(), name.c_str(), main_class.c_str());
+
+	return run_compiler((path + "/" + name).c_str(),
+			"/usr/lib/jvm/java-11-openjdk-amd64/bin/javac", (main_class + ".java").c_str(), NULL);
 }
 
 RunCompilerResult compile(const char *name)  {
 	string lang = conf_str(string(name) + "_language");
 
-	if ((lang == "C++" || lang == "C++11" || lang == "C") && has_illegal_keywords_in_file(work_path + "/" + name + ".code"))
-	{
-		RunCompilerResult res;
-		res.type = RS_DGS;
-		res.ust = -1;
-		res.usm = -1;
-		res.succeeded = false;
-		res.info = "Compile Failed";
-		return res;
-	}
 
-	if (lang == "C++") {
-		return compile_cpp(name);
+	if (lang == "C++98") {
+		return compile_cpp(name, "98");
 	}
 	if (lang == "C++11") {
-		return compile_cpp11(name);
+		return compile_cpp(name, "11");
 	}
-	if (lang == "Python2.7") {
-		return compile_python2_7(name);
+	if (lang == "C++14") {
+		return compile_cpp(name, "14");
+	}
+	if (lang == "C++17") {
+		return compile_cpp(name, "14");
+	}
+	if (lang == "C99") {
+		return compile_c(name, "99");
+	}
+	if (lang == "C11") {
+		return compile_c(name, "11");
+	}
+	if (lang == "Python2") {
+		return compile_python2(name);
 	}
 	if (lang == "Python3") {
 		return compile_python3(name);
 	}
-	if (lang == "Java7") {
-		return compile_java7(name);
-	}
 	if (lang == "Java8") {
 		return compile_java8(name);
 	}
-	if (lang == "C") {
-		return compile_c(name);
+	if (lang == "Java11") {
+		return compile_java11(name);
 	}
 	if (lang == "Pascal") {
 		return compile_pas(name);
@@ -1254,56 +1219,39 @@ RunCompilerResult compile(const char *name)  {
 	return res;
 }
 
-RunCompilerResult compile_c_with_implementer(const string &name, const string &path = work_path) {
+RunCompilerResult compile_c_with_implementer(const string &name, const string &standard, const string &path = work_path) {
 	return run_compiler(path.c_str(), 
-			"/usr/bin/gcc-4.8", "-o", name.c_str(), "implementer.c", "-x", "c", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", NULL);
+			"/usr/bin/gcc", "-o", name.c_str(), "implementer.c", "-x", "c", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", ("-std=c" + standard).c_str(), NULL);
 }
 RunCompilerResult compile_pas_with_implementer(const string &name, const string &path = work_path) {
 	executef("cp %s %s", (path + "/" + name + ".code").c_str(), (path + "/" + conf_str(name + "_unit_name") + ".pas").c_str());
 	return run_compiler(path.c_str(),
-			"/usr/bin/fpc-2.6.2", "implementer.pas", ("-o" + name).c_str(), "-O2", NULL);
+			"/usr/bin/fpc", "implementer.pas", ("-o" + name).c_str(), "-O2", NULL);
 }
-RunCompilerResult compile_cpp_with_implementer(const string &name, const string &path = work_path) {
+RunCompilerResult compile_cpp_with_implementer(const string &name, const string &standard, const string &path = work_path) {
 	return run_compiler(path.c_str(),
-			"/usr/bin/g++-4.8", "-o", name.c_str(), "implementer.cpp", "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", NULL);
+			"/usr/bin/g++", "-o", name.c_str(), "implementer.cpp", "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", ("-std=c++" + standard).c_str(), NULL);
 }
-RunCompilerResult compile_cpp11_with_implementer(const string &name, const string &path = work_path) {
-	return run_compiler(path.c_str(),
-			"/usr/bin/g++-4.8", "-o", name.c_str(), "implementer.cpp", "-x", "c++", (name + ".code").c_str(), "-lm", "-O2", "-DONLINE_JUDGE", "-std=c++11", NULL);
-}
-/*
-RunCompilerResult compile_python2_7(const string &name, const string &path = work_path) {
-	return run_compiler(path.c_str(),
-			"/usr/bin/python2.7", "-E", "-s", "-B", "-O", "-c",
-			("import py_compile\nimport sys\ntry:\n    py_compile.compile('" + name + ".code'" + ", '" + name + "', doraise=True)\n    sys.exit(0)\nexcept Exception as e:\n    print e\n    sys.exit(1)").c_str(), NULL);
-}
-RunCompilerResult compile_python3(const string &name, const string &path = work_path) {
-	return run_compiler(path.c_str(),
-			"/usr/bin/python3.4", "-I", "-B", "-O", "-c", ("import py_compile\nimport sys\ntry:\n    py_compile.compile('" + name + ".code'" + ", '" + name + "', doraise=True)\n    sys.exit(0)\nexcept Exception as e:\n    print(e)\n    sys.exit(1)").c_str(), NULL);
-}
-*/
 RunCompilerResult compile_with_implementer(const char *name)  {
 	string lang = conf_str(string(name) + "_language");
 
-	if (has_illegal_keywords_in_file(work_path + "/" + name + ".code"))
-	{
-		RunCompilerResult res;
-		res.type = RS_DGS;
-		res.ust = -1;
-		res.usm = -1;
-		res.succeeded = false;
-		res.info = "Compile Failed";
-		return res;
-	}
-
-	if (lang == "C++") {
-		return compile_cpp_with_implementer(name);
+	if (lang == "C++98") {
+		return compile_cpp_with_implementer(name, "98");
 	}
 	if (lang == "C++11") {
-		return compile_cpp11_with_implementer(name);
+		return compile_cpp_with_implementer(name, "11");
 	}
-	if (lang == "C") {
-		return compile_c_with_implementer(name);
+	if (lang == "C++14") {
+		return compile_cpp_with_implementer(name, "14");
+	}
+	if (lang == "C++17") {
+		return compile_cpp_with_implementer(name, "17");
+	}
+	if (lang == "C99") {
+		return compile_c_with_implementer(name, "99");
+	}
+	if (lang == "C11") {
+		return compile_c_with_implementer(name, "11");
 	}
 	if (lang == "Pascal") {
 		return compile_pas_with_implementer(name);

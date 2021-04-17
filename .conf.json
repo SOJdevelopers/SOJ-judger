@@ -1,10 +1,8 @@
 {
 	"uoj_protocol": "http",
-	"uoj_host": "",
-	"judger_name": "judger",
-	"judger_password": "",
+	"uoj_host": "1",
+	"judger_name": "deb",
+	"judger_password": "5lSClH5T5xX0adgvXa5dqYqqfYbSjVBq",
 	"socket_port": 2333,
-	"socket_password": "",
-	"svn_username": "root",
-	"svn_password": ""
+	"socket_password": "1"
 }
