@@ -399,7 +399,11 @@ void init_conf(const RunProgramConfig &config) {
 		statable_file_name_set.insert("/usr/bin");
 		statable_file_name_set.insert("/usr/lib");
 		# ifdef UOJ_JUDGER_BASESYSTEM_UBUNTU1804
+		statable_file_name_set.insert("/usr/lib/python39.zip");
 		statable_file_name_set.insert("/usr/lib/python38.zip");
+		statable_file_name_set.insert("/usr/lib/python37.zip");
+		statable_file_name_set.insert("/usr/lib/python36.zip");
+		statable_file_name_set.insert("/usr/lib/python35.zip");
 		# endif
 	} else if (config.type == "java8") {
 		syscall_max_cnt[__NR_gettid         ] = -1;
