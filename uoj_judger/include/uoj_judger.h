@@ -1190,7 +1190,7 @@ RunCompilerResult compile(const char *name)  {
 		return compile_cpp(name, "14");
 	}
 	if (lang == "C++17") {
-		return compile_cpp(name, "14");
+		return compile_cpp(name, "17");
 	}
 	if (lang == "C99") {
 		return compile_c(name, "99");
