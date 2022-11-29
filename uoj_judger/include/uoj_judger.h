@@ -126,7 +126,7 @@ struct RunLimit {
 };
 
 const RunLimit RL_DEFAULT = RunLimit(1.0, 256, 64);
-const RunLimit RL_JUDGER_DEFAULT = RunLimit(600.0, 1024, 128);
+const RunLimit RL_JUDGER_DEFAULT = RunLimit(600.0, 2048, 128);
 const RunLimit RL_CHECKER_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_INTERACTOR_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_VALIDATOR_DEFAULT = RunLimit(5.0, 256, 64);
