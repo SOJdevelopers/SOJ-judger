@@ -80,6 +80,17 @@ string file_preview(const string &name, const size_t &len = 128) {
 	}
 	if (res.size() > len + 3) {
 		res.resize(len);
+		int i,pos=res.size();
+		for(i=pos-1;i>=0;--i){
+			if((unsigned char)res[i]>=0xC0) break;
+		}
+		if(i>=0){
+			int tmp=(unsigned char)res[i],tlen;
+			if(tmp<=0xDF) tlen=2;
+			else if(tmp<=0xEF) tlen=3;
+			else tlen=4;
+			if(i+tlen>res.size()) res.resize(i);
+		}
 		res += "...";
 	}
 	fclose(f);
