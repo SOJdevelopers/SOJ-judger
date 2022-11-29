@@ -68,6 +68,19 @@ int executef(const char *fmt, ...) {
 
 /*========================= file ====================== */
 
+bool charinside(unsigned char ch,int l,int r)
+{
+	return l<=ch&&ch<=r;
+}
+
+string itoa_16(int x)
+{
+	string res;
+	if(x/16<10)res+=(char)(x/16+'0');else res+=(char)(x/16-10+'a');
+	if(x%16<10)res+=(char)(x%16+'0');else res+=(char)(x%16-10+'a');
+	return res;
+}
+
 string file_preview(const string &name, const size_t &len = 128) {
 	FILE *f = fopen(name.c_str(), "r");
 	if (f == NULL) {
@@ -80,21 +93,25 @@ string file_preview(const string &name, const size_t &len = 128) {
 	}
 	if (res.size() > len + 3) {
 		res.resize(len);
-		int i,pos=res.size();
-		for(i=pos-1;i>=0;--i){
-			if((unsigned char)res[i]>=0xC0) break;
-		}
-		if(i>=0){
-			int tmp=(unsigned char)res[i],tlen;
-			if(tmp<=0xDF) tlen=2;
-			else if(tmp<=0xEF) tlen=3;
-			else tlen=4;
-			if(i+tlen>res.size()) res.resize(i);
-		}
 		res += "...";
 	}
+	string res2;
+	int sz=res.size();
+	for(int x=0;x<sz;x++)
+	{
+		if(charinside(res[x],0x00,0x7F))res2+=res[x];
+		else if(charinside(res[x],0xC2,0xDF)&&x+1<sz&&charinside(res[x+1],0x80,0xBF))res2+=res[x],res2+=res[x+1],x++;
+		else if(charinside(res[x],0xE0,0xE0)&&x+1<sz&&charinside(res[x+1],0xA0,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xE1,0xEC)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xED,0xED)&&x+1<sz&&charinside(res[x+1],0x80,0x9F)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xEE,0xEF)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xF0,0xF0)&&x+1<sz&&charinside(res[x+1],0x90,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else if(charinside(res[x],0xF1,0xF3)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else if(charinside(res[x],0xF4,0xF4)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else res2+="\\x"+itoa_16((unsigned char)(res[x]));
+	}
 	fclose(f);
-	return res;
+	return res2;
 }
 void file_hide_token(const string &name, const string &token) {
 	executef("cp %s %s.bak", name.c_str(), name.c_str());
