@@ -1510,6 +1510,9 @@ CustomTestInfo ordinary_custom_test(const string &name) {
 	string input_file_name = work_path + "/input.txt";
 	string output_file_name = work_path + "/output.txt";
 
+	string formatted_input_file_name = work_path + "/formatted_input.txt";
+	executef("%s/run/formatter < %s > %s",main_path.c_str(),input_file_name.c_str(),formatted_input_file_name.c_str());
+	executef("mv -f %s %s",formatted_input_file_name.c_str(),input_file_name.c_str());
 	RunResult pro_ret = run_submission_program(
 			input_file_name,
 			output_file_name,
