@@ -198,7 +198,6 @@ void parse_args(int argc, char **argv) {
 	run_program_config.real_time_limit = -1;
 	run_program_config.memory_limit = 256;
 	run_program_config.output_limit = 64;
-	run_program_config.stack_limit = 1024;
 	run_program_config.input_file_name = "stdin";
 	run_program_config.output_file_name = "stdout";
 	run_program_config.error_file_name = "stderr";
@@ -210,7 +209,7 @@ void parse_args(int argc, char **argv) {
 	run_program_config.allow_proc = false;
 
 	argp_parse(&run_program_argp, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &run_program_config);
-	run_program_config.stack_limit = min(run_program_config.stack_limit, run_program_config.memory_limit);
+	run_program_config.stack_limit = run_program_config.memory_limit;
 
 	if (run_program_config.real_time_limit <= 0)
 		run_program_config.real_time_limit = run_program_config.time_limit + 1500;

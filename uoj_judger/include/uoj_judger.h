@@ -68,6 +68,19 @@ int executef(const char *fmt, ...) {
 
 /*========================= file ====================== */
 
+bool charinside(unsigned char ch,int l,int r)
+{
+	return l<=ch&&ch<=r;
+}
+
+string itoa_16(int x)
+{
+	string res;
+	if(x/16<10)res+=(char)(x/16+'0');else res+=(char)(x/16-10+'a');
+	if(x%16<10)res+=(char)(x%16+'0');else res+=(char)(x%16-10+'a');
+	return res;
+}
+
 string file_preview(const string &name, const size_t &len = 128) {
 	FILE *f = fopen(name.c_str(), "r");
 	if (f == NULL) {
@@ -82,8 +95,23 @@ string file_preview(const string &name, const size_t &len = 128) {
 		res.resize(len);
 		res += "...";
 	}
+	string res2;
+	int sz=res.size();
+	for(int x=0;x<sz;x++)
+	{
+		if(charinside(res[x],0x00,0x7F))res2+=res[x];
+		else if(charinside(res[x],0xC2,0xDF)&&x+1<sz&&charinside(res[x+1],0x80,0xBF))res2+=res[x],res2+=res[x+1],x++;
+		else if(charinside(res[x],0xE0,0xE0)&&x+1<sz&&charinside(res[x+1],0xA0,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xE1,0xEC)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xED,0xED)&&x+1<sz&&charinside(res[x+1],0x80,0x9F)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xEE,0xEF)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],x+=2;
+		else if(charinside(res[x],0xF0,0xF0)&&x+1<sz&&charinside(res[x+1],0x90,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else if(charinside(res[x],0xF1,0xF3)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else if(charinside(res[x],0xF4,0xF4)&&x+1<sz&&charinside(res[x+1],0x80,0xBF)&&x+2<sz&&charinside(res[x+2],0x80,0xBF)&&x+3<sz&&charinside(res[x+3],0x80,0xBF))res2+=res[x],res2+=res[x+1],res2+=res[x+2],res2+=res[x+3],x+=3;
+		else res2+="\\x"+itoa_16((unsigned char)(res[x]));
+	}
 	fclose(f);
-	return res;
+	return res2;
 }
 void file_hide_token(const string &name, const string &token) {
 	executef("cp %s %s.bak", name.c_str(), name.c_str());
@@ -126,7 +154,7 @@ struct RunLimit {
 };
 
 const RunLimit RL_DEFAULT = RunLimit(1.0, 256, 64);
-const RunLimit RL_JUDGER_DEFAULT = RunLimit(600.0, 1024, 128);
+const RunLimit RL_JUDGER_DEFAULT = RunLimit(600.0, 2048, 128);
 const RunLimit RL_CHECKER_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_INTERACTOR_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_VALIDATOR_DEFAULT = RunLimit(5.0, 256, 64);
@@ -1482,6 +1510,9 @@ CustomTestInfo ordinary_custom_test(const string &name) {
 	string input_file_name = work_path + "/input.txt";
 	string output_file_name = work_path + "/output.txt";
 
+	string formatted_input_file_name = work_path + "/formatted_input.txt";
+	executef("%s/run/formatter < %s > %s",main_path.c_str(),input_file_name.c_str(),formatted_input_file_name.c_str());
+	executef("mv -f %s %s",formatted_input_file_name.c_str(),input_file_name.c_str());
 	RunResult pro_ret = run_submission_program(
 			input_file_name,
 			output_file_name,
