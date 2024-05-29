@@ -340,19 +340,19 @@ void load_config(const string &filename) {
 		config[key] = val;
 	}
 }
-string conf_str(const string &key, int num, const string &val) {
-	ostringstream sout;
-	sout << key << "_" << num;
-	if (config.count(sout.str()) == 0) {
-		return val;
-	}
-	return config[sout.str()];
-}
 string conf_str(const string &key, const string &val) {
 	if (config.count(key) == 0) {
 		return val;
 	}
 	return config[key];
+}
+string conf_str(const string &key, int num, const string &val) {
+	ostringstream sout;
+	sout << key << "_" << num;
+	if (config.count(sout.str()) == 0) {
+		return conf_str(key, val);
+	}
+	return config[sout.str()];
 }
 string conf_str(const string &key) {
 	return conf_str(key, "");

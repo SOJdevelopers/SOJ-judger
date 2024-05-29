@@ -155,7 +155,10 @@ void ordinary_test() {
 
 	if (passed) tot_score = 100;
 	if (conf_is("submit_answer", "on") || !passed) end_judge_ok();
-
+	typedef decltype(PointInfo::ust) ust_t;
+	typedef decltype(PointInfo::usm) usm_t;
+	ust_t max_ex_time=-1;
+	usm_t max_ex_mem=-1;
 	for (int i = 1; i <= m; i++) {
 		report_judge_status_f("Judging Extra Test #%d", i);
 		PointInfo po = test_point("answer", -i);
@@ -166,9 +169,13 @@ void ordinary_test() {
 			add_point_info(po);
 			end_judge_ok();
 		}
+		if(po.ust!=ust_t(-1)&&(max_ex_time==ust_t(-1)||po.ust>max_ex_time))
+			max_ex_time=po.ust;
+		if(po.usm!=usm_t(-1)&&(max_ex_mem==usm_t(-1)||po.usm>max_ex_mem))
+			max_ex_mem=po.usm;
 	}
 	if (m != 0) {
-		PointInfo po(-1, 0, -1, -1, "Extra Test Passed", "", "", "");
+		PointInfo po(-1, 0, max_ex_time, max_ex_mem, "Extra Test Passed", "", "", "");
 		add_point_info(po);
 	}
 	end_judge_ok();
