@@ -14,6 +14,7 @@
 #include <cstring>
 #include <string>
 #include <cstdarg>
+#include <cinttypes>
 
 #include <unistd.h>
 #include <sys/file.h>
@@ -161,17 +162,73 @@ const RunLimit RL_VALIDATOR_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_MARKER_DEFAULT = RunLimit(5.0, 256, 64);
 const RunLimit RL_COMPILER_DEFAULT = RunLimit(15.0, 512, 64);
 
-struct PointInfo {
-	int num, scr, usm;
-	double ust;
-	string info, in, out, res;
+struct score_t {
+  private:
+	static int scale, pow_scale;
+  public:
+	static void set_scale(int s) {
+		scale = min(max(s, 0), 6);
+		pow_scale = 1;
+		for(int i = 0; i < scale; ++i) pow_scale *= 10;
+	}
+	static int get_scale() {return scale;}
+	static int get_pow_scale() {return pow_scale;}
+	int64_t value;
+	score_t(bool v): value((int64_t)pow_scale * v){}
+	score_t(int v=0): value((int64_t)pow_scale * v){}
+	score_t(double v): value(pow_scale * v){}
+	const char *c_str() const {
+		static char buf[50];
+		char *ptr = buf;
+		int64_t abs_value = value;
+		if(value < 0) ptr += sprintf(ptr, "-"), abs_value *= -1;
+		ptr += sprintf(ptr, "%" PRId64, abs_value / pow_scale);
+		if(scale) ptr += sprintf(ptr, ".");
+		for(int i = pow_scale; (i > 1) && (i /= 10); )
+			ptr += sprintf(ptr, "%" PRId64, abs_value / i % 10);
+		return buf;
+	}
+	static score_t raw(int64_t v) {
+		score_t x;
+		x.value = v;
+		return x;
+	}
+	score_t operator - () {
+		score_t x = *this;
+		x.value *= -1;
+		return x;
+	}
+	score_t &operator += (const score_t &a) {
+		value += a.value;
+		return *this;
+	}
+	friend bool operator == (const score_t &a, const score_t &b) {
+		return a.value == b.value;
+	}
+	friend bool operator != (const score_t &a, const score_t &b) {
+		return a.value != b.value;
+	}
+	friend bool operator < (const score_t &a, const score_t &b) {
+		return a.value < b.value;
+	}
+	friend bool operator > (const score_t &a, const score_t &b) {
+		return a.value > b.value;
+	}
+};
 
-	PointInfo(const int &_num, const int &_scr,
+int score_t::scale = 0, score_t::pow_scale = 1;
+
+struct PointInfo {
+	int num; score_t scr;
+	int usm; double ust;
+	string info, in, out, res, err;
+
+	PointInfo(const int &_num, const score_t &_scr,
 			const double &_ust, const int &_usm, const string &_info,
-			const string &_in, const string &_out, const string &_res)
+			const string &_in, const string &_out, const string &_res, const string &_err)
 			: num(_num), scr(_scr),
 			ust(_ust), usm(_usm), info(_info),
-			in(_in), out(_out), res(_res) {
+			in(_in), out(_out), res(_res), err(_err) {
 		if (info == "default") {
 			if (scr == 0) {
 				info = "Wrong Answer";
@@ -186,12 +243,12 @@ struct PointInfo {
 
 struct CustomTestInfo  {
 	double ust; int usm;
-	string info, exp, out;
+	string info, exp, out, err;
 
 	CustomTestInfo(const double &_ust, const int &_usm, const string &_info,
-			const string &_exp, const string &_out)
+			const string &_exp, const string &_out, const string &_err)
 			: ust(_ust), usm(_usm), info(_info),
-			exp(_exp), out(_out) {
+			exp(_exp), out(_out), err(_err) {
 	}
 };
 
@@ -222,7 +279,7 @@ struct RunResult {
 struct RunCheckerResult {
 	int type;
 	double ust; int usm;
-	int scr;
+	score_t scr;
 	string info;
 
 	static RunCheckerResult from_file(const string &file_name, const RunResult &rres) {
@@ -246,7 +303,7 @@ struct RunCheckerResult {
 				if (fscanf(fres, "%lf", &d) != 1) {
 					return RunCheckerResult::failed_result();
 				} else {
-					res.scr = (int)floor(100 * d + 0.5);
+					res.scr = 100 * d;
 				}
 			} else {
 				res.scr = 0;
@@ -315,7 +372,7 @@ string result_path;
 
 double tot_time = 0.0;
 int max_memory = 0;
-int tot_score = 0;
+score_t tot_score = 0;
 ostringstream details_out;
 //vector<PointInfo> points_info;
 map<string, string> config;
@@ -374,6 +431,22 @@ int conf_int(const string &key, int num, const int &val) {
 int conf_int(const string &key)  {
 	return conf_int(key, 0);
 }
+int conf_int_sub(const string &key, int sub_num, const int &val){
+	ostringstream sout;
+	sout << "subtask_" << key << "_" << sub_num;
+	if (config.count(sout.str()) == 0) {
+		return conf_int(key, val);
+	}
+	return atoi(config[sout.str()].c_str());
+}
+int conf_int_in_sub(const string &key, int sub_num, int num, const int &val) {
+	ostringstream sout;
+	sout << key << "_" << num;
+	if (config.count(sout.str()) == 0) {
+		return conf_int_sub(key, sub_num, val);
+	}
+	return atoi(config[sout.str()].c_str());
+}
 double conf_double(const string &key, const double &val) {
 	if (config.count(key) == 0) {
 		return val;
@@ -390,6 +463,22 @@ double conf_double(const string &key, int num, const double &val) {
 }
 double conf_double(const string &key)  {
 	return conf_double(key, 0.0);
+}
+double conf_double_sub(const string &key, int sub_num, const double &val) {
+	ostringstream sout;
+	sout << "subtask_" << key << "_" << sub_num;
+	if (config.count(sout.str()) == 0) {
+		return conf_double(key, val);
+	}
+	return atof(config[sout.str()].c_str());
+}
+double conf_double_in_sub(const string &key, int sub_num, int num, const double &val) {
+	ostringstream sout;
+	sout << key << "_" << num;
+	if (config.count(sout.str()) == 0) {
+		return conf_double_sub(key, sub_num, val);
+	}
+	return atof(config[sout.str()].c_str());
 }
 string conf_input_file_name(int num) {
 	ostringstream name;
@@ -417,8 +506,21 @@ RunLimit conf_run_limit(string pre, const int &num, const RunLimit &val) {
 	limit.output = conf_int(pre + "output_limit", num, val.output);
 	return limit;
 }
+RunLimit conf_run_limit(string pre, const int&sub_num, const int &num, const RunLimit &val) {
+	if (!pre.empty()) {
+		pre += "_";
+	}
+	RunLimit limit;
+	limit.time = conf_double_in_sub(pre + "time_limit", sub_num, num, val.time);
+	limit.memory = conf_int_in_sub(pre + "memory_limit", sub_num, num, val.memory);
+	limit.output = conf_int_in_sub(pre + "output_limit", sub_num, num, val.output);
+	return limit;
+}
 RunLimit conf_run_limit(const int &num, const RunLimit &val) {
 	return conf_run_limit("", num, val);
+}
+RunLimit conf_run_limit(const int&sub_num, const int &num, const RunLimit &val) {
+	return conf_run_limit("", sub_num, num, val);
 }
 void conf_add(const string &key, const string &val) {
 	if (config.count(key))  return;
@@ -492,7 +594,7 @@ void add_point_info(const PointInfo &info, bool update_tot_score = true) {
 		details_out << "<test num=\"" << info.num << "\"";
 	}
 	details_out
-		<< " score=\"" << info.scr << "\""
+		<< " score=\"" << info.scr.c_str() << "\""
 		<< " info=\"" << htmlspecialchars(info.info) << "\""
 		<< " time=\"" << info.ust << "\""
 		<< " memory=\"" << info.usm << "\">" << endl;
@@ -504,6 +606,9 @@ void add_point_info(const PointInfo &info, bool update_tot_score = true) {
 	}
 	if (conf_str("show_res", "on") == "on") {
 		details_out << "<res>" << htmlspecialchars(info.res) << "</res>" << endl;
+	}
+	if (conf_str("show_err", "on") == "on") {
+		details_out << "<err>" << htmlspecialchars(info.err) << "</err>" << endl;
 	}
 	details_out << "</test>" << endl;
 }
@@ -522,11 +627,12 @@ void add_custom_test_info(const CustomTestInfo &info) {
 		details_out << info.exp << endl;
 	}
 	details_out << "<out>" << htmlspecialchars(info.out) << "</out>" << endl;
+	details_out << "<err>" << htmlspecialchars(info.err) << "</err>" << endl;
 	details_out << "</custom-test>" << endl;
 }
-void add_subtask_info(const int &num, const int &scr, const string &info, const vector<PointInfo> &points) {
+void add_subtask_info(const int &num, const score_t &scr, const string &info, const vector<PointInfo> &points) {
 	details_out << "<subtask num=\"" << num << "\""
-		<< " score=\"" << scr << "\""
+		<< " score=\"" << scr.c_str() << "\""
 		<< " info=\"" << htmlspecialchars(info) << "\">" << endl;
 	tot_score += scr;
 	for (vector<PointInfo>::const_iterator it = points.begin(); it != points.end(); it++) {
@@ -536,7 +642,7 @@ void add_subtask_info(const int &num, const int &scr, const string &info, const 
 }
 void end_judge_ok() {
 	FILE *fres = fopen((result_path + "/result.txt").c_str(), "w");
-	fprintf(fres, "score %d\n", tot_score);
+	fprintf(fres, "score %s\n", tot_score.c_str());
 	fprintf(fres, "time %.8lg\n", tot_time);
 	fprintf(fres, "memory %d\n", max_memory);
 	fprintf(fres, "details\n");
@@ -864,13 +970,14 @@ RunCompilerResult run_compiler(const char *path, ...) {
 RunResult run_submission_program(
 		const string &input_file_name,
 		const string &output_file_name,
+		const string &error_file_name,
 		const RunLimit &limit,
 		const string &name,
 		RunProgramConfig rpc = RunProgramConfig()) {
 	rpc.result_file_name = result_path + "/run_submission_program.txt";
 	rpc.input_file_name = input_file_name;
 	rpc.output_file_name = output_file_name;
-	rpc.error_file_name = "/dev/null";
+	rpc.error_file_name = error_file_name;
 	rpc.limit = limit;
 	rpc.set_submission_program_name(name);
 
@@ -889,7 +996,7 @@ void prepare_interactor() {
 	string data_path_std = data_path + "/interactor";
 	string work_path_std = work_path + "/interactor";
 	executef("cp %s %s", data_path_std.c_str(), work_path_std.c_str());
-	conf_add("interactor_language", "C++");
+	conf_add("interactor_language", DEFAULT_LANGUAGE);
 	prepared = true;
 }
 
@@ -966,7 +1073,7 @@ void prepare_run_standard_program() {
 	string data_path_std = data_path + "/std";
 	string work_path_std = work_path + "/std";
 	executef("cp %s %s", data_path_std.c_str(), work_path_std.c_str());
-	conf_add("std_language", "C++");
+	conf_add("std_language", DEFAULT_LANGUAGE);
 	prepared = true;
 }
 
@@ -975,6 +1082,7 @@ void prepare_run_standard_program() {
 RunResult run_standard_program(
 		const string &input_file_name,
 		const string &output_file_name,
+		const string &error_file_name,
 		const RunLimit &limit,
 		RunProgramConfig rpc = RunProgramConfig()) {
 	prepare_run_standard_program();
@@ -982,6 +1090,7 @@ RunResult run_standard_program(
 	return run_submission_program(
 			input_file_name,
 			output_file_name,
+			error_file_name,
 			limit,
 			"std",
 			rpc);
@@ -1220,11 +1329,20 @@ RunCompilerResult compile(const char *name)  {
 	if (lang == "C++17") {
 		return compile_cpp(name, "17");
 	}
+	if (lang == "C++20") {
+		return compile_cpp(name, "20");
+	}
+	if (lang == "C++23") {
+		return compile_cpp(name, "23");
+	}
 	if (lang == "C99") {
 		return compile_c(name, "99");
 	}
 	if (lang == "C11") {
 		return compile_c(name, "11");
+	}
+	if (lang == "C17") {
+		return compile_c(name, "17");
 	}
 	if (lang == "Python2") {
 		return compile_python2(name);
@@ -1244,6 +1362,8 @@ RunCompilerResult compile(const char *name)  {
 
 	RunCompilerResult res = RunCompilerResult::failed_result();
 	res.info = "This language is not supported yet.";
+	if (lang == "C++")
+		res.info += " (Note: Please use \"C++98\" or \"C++14\" or another specific standard instead of \"C++\".)";
 	return res;
 }
 
@@ -1275,11 +1395,20 @@ RunCompilerResult compile_with_implementer(const char *name)  {
 	if (lang == "C++17") {
 		return compile_cpp_with_implementer(name, "17");
 	}
+	if (lang == "C++20") {
+		return compile_cpp_with_implementer(name, "20");
+	}
+	if (lang == "C++23") {
+		return compile_cpp_with_implementer(name, "23");
+	}
 	if (lang == "C99") {
 		return compile_c_with_implementer(name, "99");
 	}
 	if (lang == "C11") {
 		return compile_c_with_implementer(name, "11");
+	}
+	if (lang == "C17") {
+		return compile_c_with_implementer(name, "17");
 	}
 	if (lang == "Pascal") {
 		return compile_pas_with_implementer(name);
@@ -1287,6 +1416,8 @@ RunCompilerResult compile_with_implementer(const char *name)  {
 
 	RunCompilerResult res = RunCompilerResult::failed_result();
 	res.info = "This language is not supported yet.";
+	if (lang == "C++")
+		res.info += " (Note: Please use \"C++98\" or \"C++14\" or another specific standard instead of \"C++\".)";
 	return res;
 }
 
@@ -1301,6 +1432,7 @@ struct TestPointConfig {
 	string input_file_name;
 	string output_file_name;
 	string answer_file_name;
+	string error_file_name;
 
 	TestPointConfig()
 			: submit_answer(-1), validate_input_before_test(-1) {
@@ -1322,6 +1454,9 @@ struct TestPointConfig {
 		if (answer_file_name.empty()) {
 			answer_file_name = data_path + "/" + conf_output_file_name(num);
 		}
+		if (error_file_name.empty()) {
+			error_file_name = work_path + "/" + conf_output_file_name(num) + ".err";
+		}
 	}
 };
 
@@ -1331,18 +1466,18 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 	if (tpc.validate_input_before_test) {
 		RunValidatorResult val_ret = run_validator(
 				tpc.input_file_name,
-				conf_run_limit("validator", 0, RL_VALIDATOR_DEFAULT),
+				conf_run_limit("validator", num, RL_VALIDATOR_DEFAULT),
 				conf_str("validator"));
 		if (val_ret.type != RS_AC) {
 			return PointInfo(num, 0, -1, -1,
 					"Validator " + info_str(val_ret.type),
 					file_preview(tpc.input_file_name), "",
-					"");
+					"", "");
 		} else if (!val_ret.succeeded) {
 			return PointInfo(num, 0, -1, -1,
 					"Invalid Input",
 					file_preview(tpc.input_file_name), "",
-					val_ret.info);
+					val_ret.info, "");
 		}
 	}
 
@@ -1352,6 +1487,7 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 			pro_ret = run_submission_program(
 					tpc.input_file_name.c_str(),
 					tpc.output_file_name.c_str(),
+					tpc.error_file_name.c_str(),
 					conf_run_limit(num, RL_DEFAULT),
 					name);
 			if (conf_has("token")) {
@@ -1361,7 +1497,7 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 				return PointInfo(num, 0, -1, -1,
 						info_str(pro_ret.type),
 						file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
-						"");
+						"", file_preview(tpc.error_file_name));
 			}
 		} else {
 			pro_ret.type = RS_AC;
@@ -1380,13 +1516,13 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 			return PointInfo(num, 0, -1, -1,
 					"Checker " + info_str(chk_ret.type),
 					file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
-					"");
+					"", file_preview(tpc.error_file_name));
 		}
 
 		return PointInfo(num, chk_ret.scr, pro_ret.ust, pro_ret.usm, 
 				"default",
 				file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
-				chk_ret.info);
+				chk_ret.info, file_preview(tpc.error_file_name));
 	} else {
 		string real_output_file_name = tpc.output_file_name + ".real_input.txt";
 		string real_input_file_name = tpc.output_file_name + ".real_output.txt";
@@ -1403,14 +1539,14 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 			return PointInfo(num, 0, -1, -1,
 					"Interactor " + info_str(rires.ires.type),
 					file_preview(real_input_file_name), file_preview(real_output_file_name),
-					"");
+					"", "");
 		}
 
 		if (rires.res.type != RS_AC) {
 			return PointInfo(num, 0, -1, -1,
 					info_str(rires.res.type),
 					file_preview(real_input_file_name), file_preview(real_output_file_name),
-					"");
+					"", "");
 		}
 
 		double t = conf_double("nonio_time_limit", num, 1.0);
@@ -1418,13 +1554,116 @@ PointInfo test_point(const string &name, const int &num, TestPointConfig tpc = T
 			return PointInfo(num, 0, -1, -1,
 					info_str(RS_TLE),
 					file_preview(real_input_file_name), file_preview(real_output_file_name),
-					"");
+					"", "");
 		}
 
 		return PointInfo(num, rires.ires.scr, rires.res.ust, rires.res.usm, 
 				"default",
 				file_preview(real_input_file_name), file_preview(real_output_file_name),
-				rires.ires.info);
+				rires.ires.info, "");
+	}
+}
+PointInfo test_point(const string &name, const int &sub_num, const int &num, TestPointConfig tpc = TestPointConfig()) {
+	tpc.auto_complete(num);
+
+	if (tpc.validate_input_before_test) {
+		RunValidatorResult val_ret = run_validator(
+				tpc.input_file_name,
+				conf_run_limit("validator", sub_num, num, RL_VALIDATOR_DEFAULT),
+				conf_str("validator"));
+		if (val_ret.type != RS_AC) {
+			return PointInfo(num, 0, -1, -1,
+					"Validator " + info_str(val_ret.type),
+					file_preview(tpc.input_file_name), "",
+					"", "");
+		} else if (!val_ret.succeeded) {
+			return PointInfo(num, 0, -1, -1,
+					"Invalid Input",
+					file_preview(tpc.input_file_name), "",
+					val_ret.info, "");
+		}
+	}
+
+	if (!conf_is("interaction_mode", "on")) {
+		RunResult pro_ret;
+		if (!tpc.submit_answer) {
+			pro_ret = run_submission_program(
+					tpc.input_file_name.c_str(),
+					tpc.output_file_name.c_str(),
+					tpc.error_file_name.c_str(),
+					conf_run_limit(sub_num, num, RL_DEFAULT),
+					name);
+			if (conf_has("token")) {
+				file_hide_token(tpc.output_file_name, conf_str("token", ""));
+			}
+			if (pro_ret.type != RS_AC) {
+				return PointInfo(num, 0, -1, -1,
+						info_str(pro_ret.type),
+						file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
+						"", file_preview(tpc.error_file_name));
+			}
+		} else {
+			pro_ret.type = RS_AC;
+			pro_ret.ust = -1;
+			pro_ret.usm = -1;
+			pro_ret.exit_code = 0;
+		}
+
+		RunCheckerResult chk_ret = run_checker(
+				conf_run_limit("checker", sub_num, num, RL_CHECKER_DEFAULT),
+				conf_str("checker"),
+				tpc.input_file_name,
+				tpc.output_file_name,
+				tpc.answer_file_name);
+		if (chk_ret.type != RS_AC) {
+			return PointInfo(num, 0, -1, -1,
+					"Checker " + info_str(chk_ret.type),
+					file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
+					"", "");
+		}
+
+		return PointInfo(num, chk_ret.scr, pro_ret.ust, pro_ret.usm, 
+				"default",
+				file_preview(tpc.input_file_name), file_preview(tpc.output_file_name),
+				chk_ret.info, file_preview(tpc.error_file_name));
+	} else {
+		string real_output_file_name = tpc.output_file_name + ".real_input.txt";
+		string real_input_file_name = tpc.output_file_name + ".real_output.txt";
+		RunSimpleInteractionResult rires = run_simple_interaction(
+				tpc.input_file_name,
+				tpc.answer_file_name,
+				real_input_file_name,
+				real_output_file_name,
+				conf_run_limit(sub_num, num, RL_DEFAULT),
+				conf_run_limit("interactor", sub_num, num, RL_INTERACTOR_DEFAULT),
+				name);
+
+		if (rires.ires.type != RS_AC) {
+			return PointInfo(num, 0, -1, -1,
+					"Interactor " + info_str(rires.ires.type),
+					file_preview(real_input_file_name), file_preview(real_output_file_name),
+					"", "");
+		}
+
+		if (rires.res.type != RS_AC) {
+			return PointInfo(num, 0, -1, -1,
+					info_str(rires.res.type),
+					file_preview(real_input_file_name), file_preview(real_output_file_name),
+					"", "");
+		}
+
+		double t = conf_double_in_sub("nonio_time_limit", sub_num, num, 1.0);
+		if (rires.res.ust > t * 1000 + 1e-6) {
+			return PointInfo(num, 0, -1, -1,
+					info_str(RS_TLE),
+					file_preview(real_input_file_name), file_preview(real_output_file_name),
+					"", "");
+		}
+
+		return PointInfo(num, rires.ires.scr, rires.res.ust, rires.res.usm, 
+				"default",
+				file_preview(real_input_file_name), file_preview(real_output_file_name),
+				rires.ires.info, "");
 	}
 }
 
@@ -1440,12 +1679,12 @@ PointInfo test_hack_point(const string &name, TestPointConfig tpc) {
 		return PointInfo(0, 0, -1, -1,
 				"Validator " + info_str(val_ret.type),
 				file_preview(tpc.input_file_name), "",
-				"");
+				"", "");
 	} else if (!val_ret.succeeded) {
 		return PointInfo(0, 0, -1, -1,
 				"Invalid Input",
 				file_preview(tpc.input_file_name), "",
-				val_ret.info);
+				val_ret.info, "");
 	}
 
 	RunLimit default_std_run_limit = conf_run_limit(0, RL_DEFAULT);
@@ -1457,6 +1696,7 @@ PointInfo test_hack_point(const string &name, TestPointConfig tpc) {
 		RunResult std_ret = run_submission_program(
 				tpc.input_file_name,
 				tpc.answer_file_name,
+				tpc.error_file_name,
 				conf_run_limit("standard", 0, default_std_run_limit),
 				"std",
 				rpc);
@@ -1464,7 +1704,7 @@ PointInfo test_hack_point(const string &name, TestPointConfig tpc) {
 			return PointInfo(0, 0, -1, -1,
 					"Standard Program " + info_str(std_ret.type),
 					file_preview(tpc.input_file_name), "",
-					"");
+					"", "");
 		}
 		if (conf_has("token")) {
 			file_hide_token(tpc.answer_file_name, conf_str("token", ""));
@@ -1488,13 +1728,13 @@ PointInfo test_hack_point(const string &name, TestPointConfig tpc) {
 			return PointInfo(0, 0, -1, -1,
 					"Interactor " + info_str(rires.ires.type) + " (Standard Program)",
 					file_preview(real_input_file_name), "",
-					"");
+					"", "");
 		}
 		if (rires.res.type != RS_AC) {
 			return PointInfo(0, 0, -1, -1,
 					"Standard Program " + info_str(rires.res.type),
 					file_preview(real_input_file_name), "",
-					"");
+					"", "");
 		}
 	}
 
@@ -1509,6 +1749,7 @@ CustomTestInfo ordinary_custom_test(const string &name) {
 
 	string input_file_name = work_path + "/input.txt";
 	string output_file_name = work_path + "/output.txt";
+	string error_file_name = work_path + "/error.txt";
 
 	string formatted_input_file_name = work_path + "/formatted_input.txt";
 	executef("%s/run/formatter < %s > %s",main_path.c_str(),input_file_name.c_str(),formatted_input_file_name.c_str());
@@ -1516,6 +1757,7 @@ CustomTestInfo ordinary_custom_test(const string &name) {
 	RunResult pro_ret = run_submission_program(
 			input_file_name,
 			output_file_name,
+			error_file_name,
 			lim,
 			name);
 	if (conf_has("token")) {
@@ -1532,11 +1774,11 @@ CustomTestInfo ordinary_custom_test(const string &name) {
 		exp = "<p><samp>time limit: " + vtos(lim.time) + "s</samp></p>";
 	}
 	return CustomTestInfo(pro_ret.ust, pro_ret.usm, 
-			info, exp, file_preview(output_file_name, 2048));
+			info, exp, file_preview(output_file_name, 2048), file_preview(error_file_name, 2048));
 }
 
-int scale_score(int scr100, int full) {
-	return scr100 * full / 100;
+score_t scale_score(score_t scr100, score_t full) {
+	return score_t::raw((__int128)scr100.value * full.value / 100 / score_t::get_pow_scale());
 }
 
 /*======================  test End   ================== */
@@ -1578,6 +1820,8 @@ void judger_init(int argc, char **argv) {
 		config["checker"] = data_path + "/chk";
 	}
 	config["validator"] = data_path + "/val";
+
+	score_t::set_scale(conf_int("score_scale", 0));
 }
 
 /*===================== conf init End ================= */

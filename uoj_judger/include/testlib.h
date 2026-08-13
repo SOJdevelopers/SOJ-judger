@@ -164,6 +164,7 @@ const char *latestFeatures[] = {
 #undef random
 
 #include <cstdio>
+#include <cstdint>
 #include <cctype>
 #include <string>
 #include <vector>

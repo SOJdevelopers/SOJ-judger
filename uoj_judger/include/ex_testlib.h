@@ -27,6 +27,7 @@ std::set < std::pair <int, int> > readTree(InStream &in, int vertex, int weight_
 		E.insert(std::pair <int, int> (v, u));
 		if (in.strict) in.readEoln();
 	}
+	return E;
 }
 
 std::set < std::pair <int, int> > readGraph(InStream &in, int vertex, int edge, int weight_min = -1, int weight_max = -1) {

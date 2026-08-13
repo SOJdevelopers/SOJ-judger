@@ -3,10 +3,10 @@
 struct SubtaskInfo {
 	bool passed;
 	string info;
-	int score;
+	score_t score;
 
 	SubtaskInfo() {}
-	SubtaskInfo(const bool &_p, const string &_i, const int &_s)
+	SubtaskInfo(const bool &_p, const string &_i, const score_t &_s)
 		: passed(_p), info(_i), score(_s) {}
 };
 
@@ -40,7 +40,7 @@ void ordinary_test() {
 		
 		for (int i = 1; i <= n; i++) {
 			report_judge_status_f("Judging Test #%d", i);
-			PointInfo po = test_point("answer", i);
+			PointInfo po = test_point("answer", 1, i);
 			if (type == "packed") {
 				if (po.scr == 100) {
 					po.scr = i == 1 ? 100 : 0;
@@ -52,7 +52,7 @@ void ordinary_test() {
 					break;
 				}
 			} else if (type == "min") {
-				po.scr < tot_score ? tot_score = po.scr : 0;
+				tot_score = min(tot_score, po.scr);
 				add_point_info(po, false);
 				if (po.scr != 100) passed = false;
 				if (po.scr == 0) break;
@@ -83,15 +83,15 @@ void ordinary_test() {
 			if (!dependences.empty() && subtaskType == "sum")
 				end_judge_judgement_failed("Type \"sum\" subtask can't have dependencies.");
 
-			int tfull = conf_int("subtask_score", t, 100 / nT);
-			int tscore = tfull, cscore = 100;
+			score_t tfull = conf_double("subtask_score", t, 100.0 / nT);
+			score_t tscore = tfull, cscore = 100;
 			bool first = true;
 			string info = "Accepted";
 
 			int num_dependences = dependences.size();
 			for (int i = 0; i < num_dependences && cscore > 0; ++i) {
 				int num = dependences[i];
-				PointInfo po(-1, subtasks[num].score, NAN, num, subtasks[num].info, "", "", "");
+				PointInfo po(-1, subtasks[num].score, NAN, num, subtasks[num].info, "", "", "", "");
 				if (subtaskType == "packed") {
 					if (po.scr == 100) {
 						po.scr = first ? tfull : 0, first = false;
@@ -114,7 +114,7 @@ void ordinary_test() {
 
 			for (int i = startI; i <= endI && cscore > 0; i++) {
 				report_judge_status_f("Judging Test #%d of Subtask #%d", i, t);
-				PointInfo po = test_point("answer", i);
+				PointInfo po = test_point("answer", t, i);
 				if (subtaskType == "packed") {
 					if (po.scr == 100) {
 						po.scr = first ? tfull : 0, first = false;
@@ -175,7 +175,7 @@ void ordinary_test() {
 			max_ex_mem=po.usm;
 	}
 	if (m != 0) {
-		PointInfo po(-1, 0, max_ex_time, max_ex_mem, "Extra Test Passed", "", "", "");
+		PointInfo po(-1, 0, max_ex_time, max_ex_mem, "Extra Test Passed", "", "", "", "");
 		add_point_info(po);
 	}
 	end_judge_ok();

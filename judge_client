@@ -173,7 +173,7 @@ def print_judge_client_status():
 def get_judger_result():
 	res = {}
 	with open(uoj_judger_path('/result/result.txt'), 'r') as fres:
-		res['score'] = 0
+		res['score'] = '0'
 		res['time'] = 0
 		res['memory'] = 0
 		while True:
@@ -192,7 +192,6 @@ def get_judger_result():
 			else:
 				assert len(sp) == 2
 				res[sp[0]] = sp[1]
-		res['score'] = int(res['score'])
 		res['time'] = int(res['time'])
 		res['memory'] = int(res['memory'])
 	res['status'] = 'Judged'
@@ -304,7 +303,7 @@ def send_and_fetch(result = None, fetch_new = True):
 		if 'is_hack' in submission:
 			data['is_hack'] = True
 			data['id'] = submission['hack']['id']
-			if result != False and result['score']:
+			if result != False and float(result['score']) > 1e-9:
 				try:
 					print("succ hack!", file=sys.stderr)
 					files = {
@@ -323,7 +322,7 @@ def send_and_fetch(result = None, fetch_new = True):
 		
 		if result == False:
 			result = {
-				'score': 0,
+				'score': '0',
 				'error': 'Judgement Failed',
 				'details': 'Unknown Error'
 			}

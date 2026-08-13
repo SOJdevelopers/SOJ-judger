@@ -36,3 +36,5 @@
 #define RS_HK_SPJ_DGS (successed_hack + RS_SPJ_DGS)
 #define RS_HK_SPJ_JGF (successed_hack + RS_SPJ_JGF)
 
+#define DEFAULT_CPP_LANGUAGE "C++14"
+#define DEFAULT_LANGUAGE DEFAULT_CPP_LANGUAGE
